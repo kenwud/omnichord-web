@@ -1,0 +1,1584 @@
+<!doctype html>
+<html lang="en" class="h-full select-none bg-slate-950 text-slate-100">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Omnichord OM-2084 | Retro Synthesizer</title>
+    <meta name="description" content="Mobile-optimized retro-futuristic Omnichord digital instrument with multi-touch strumplate and Web Audio API synthesis." />
+    <meta property="og:title" content="Omnichord OM-2084 | Retro Synthesizer" />
+    <meta property="og:description" content="Mobile-optimized retro-futuristic Omnichord digital instrument with multi-touch strumplate and Web Audio API synthesis." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Embedded Retro-Futuristic Styles -->
+    <style>
+      :root {
+        --color-neon-cyan: #00f3ff;
+        --color-neon-magenta: #ff007f;
+        --color-neon-amber: #ffb700;
+        --color-neon-green: #10b981;
+        --color-dark-panel: #0d131f;
+        --color-chassis-border: #1e293b;
+      }
+
+      * {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        background: radial-gradient(circle at 50% 30%, #151d30 0%, #080d16 80%, #04060a 100%);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      /* CRT Scanline & Phosphor effects */
+      .crt-screen {
+        background: radial-gradient(circle at 50% 50%, #06222b 0%, #021017 100%);
+        box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.25), 0 0 12px rgba(0, 243, 255, 0.15);
+        border: 1px solid rgba(0, 243, 255, 0.4);
+        position: relative;
+      }
+      .crt-screen::before {
+        content: " ";
+        display: block;
+        position: absolute;
+        top: 0; left: 0; bottom: 0; right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+        background-size: 100% 3px, 4px 100%;
+        pointer-events: none;
+        border-radius: inherit;
+        z-index: 10;
+      }
+
+      /* Tactile Chord Buttons */
+      .chord-btn {
+        position: relative;
+        transition: transform 0.06s ease, box-shadow 0.08s ease, background-color 0.08s ease;
+        box-shadow: 0 4px 0 #0f172a, 0 5px 10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        cursor: pointer;
+      }
+      .chord-btn:active, .chord-btn.is-active {
+        transform: translateY(3px);
+        box-shadow: 0 1px 0 #0f172a, 0 2px 4px rgba(0, 0, 0, 0.8), inset 0 2px 5px rgba(0, 0, 0, 0.7);
+      }
+      .chord-btn.active-major {
+        background: linear-gradient(145deg, #0284c7, #0369a1) !important;
+        border-color: #38bdf8 !important;
+        box-shadow: 0 1px 0 #0369a1, 0 0 15px rgba(56, 189, 248, 0.65), inset 0 0 10px rgba(186, 230, 253, 0.4) !important;
+      }
+      .chord-btn.active-minor {
+        background: linear-gradient(145deg, #d97706, #b45309) !important;
+        border-color: #fbbf24 !important;
+        box-shadow: 0 1px 0 #b45309, 0 0 15px rgba(251, 191, 36, 0.65), inset 0 0 10px rgba(254, 243, 199, 0.4) !important;
+      }
+      .chord-btn.active-7th {
+        background: linear-gradient(145deg, #c026d3, #9333ea) !important;
+        border-color: #e879f9 !important;
+        box-shadow: 0 1px 0 #9333ea, 0 0 15px rgba(232, 121, 249, 0.65), inset 0 0 10px rgba(250, 232, 255, 0.4) !important;
+      }
+      .chord-btn.active-maj7 {
+        background: linear-gradient(145deg, #059669, #047857) !important;
+        border-color: #34d399 !important;
+        box-shadow: 0 1px 0 #047857, 0 0 15px rgba(52, 211, 153, 0.65), inset 0 0 10px rgba(209, 250, 229, 0.4) !important;
+      }
+
+      /* Sonic Strings Strumplate */
+      .strumplate-housing {
+        background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 70%, #090e17 100%);
+        box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.9), 0 0 0 2px #334155, 0 6px 20px rgba(0, 0, 0, 0.7);
+        position: relative;
+        overflow: hidden;
+      }
+      .strum-strip {
+        position: relative;
+        transition: background-color 0.12s ease, opacity 0.15s ease;
+      }
+      .strum-strip::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 1px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,243,255,0.25), rgba(255,255,255,0.05));
+      }
+      .strum-strip.active-hit {
+        background: linear-gradient(180deg, rgba(0, 243, 255, 0.35) 0%, rgba(0, 243, 255, 0.7) 50%, rgba(255, 0, 127, 0.4) 100%) !important;
+        box-shadow: 0 0 18px rgba(0, 243, 255, 0.9);
+      }
+      .strum-ribbon {
+        background: repeating-linear-gradient(
+          90deg,
+          #1e293b,
+          #1e293b 2px,
+          #0f172a 2px,
+          #0f172a 4px
+        );
+      }
+
+      /* Neon Glows */
+      .glow-cyan {
+        text-shadow: 0 0 8px #00f3ff, 0 0 16px rgba(0, 243, 255, 0.6);
+      }
+      .glow-amber {
+        text-shadow: 0 0 8px #ffb700, 0 0 16px rgba(255, 183, 0, 0.6);
+      }
+      .glow-magenta {
+        text-shadow: 0 0 8px #ff007f, 0 0 16px rgba(255, 0, 127, 0.6);
+      }
+      .led-indicator {
+        box-shadow: 0 0 6px currentColor;
+      }
+
+      /* Custom scrollbar reset */
+      ::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Landscape Rotation Alert for Mobile Portrait */
+      @media screen and (orientation: portrait) and (max-width: 768px) {
+        #portrait-orientation-warning {
+          display: flex !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="flex flex-col h-full w-full select-none overflow-hidden bg-slate-950 text-slate-200">
+
+    <!-- ========================================== -->
+    <!-- 1. MANDATORY TAP-TO-START AUDIO OVERLAY    -->
+    <!-- ========================================== -->
+    <div id="audio-splash-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md px-6 text-center transition-opacity duration-300">
+      <div class="relative max-w-md w-full p-8 rounded-2xl bg-slate-900 border border-cyan-500/40 shadow-[0_0_50px_rgba(0,243,255,0.25)] flex flex-col items-center">
+        <!-- Omnichord Retro Badge -->
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/50 text-cyan-400 text-xs font-semibold tracking-widest uppercase mb-4 shadow-[0_0_10px_rgba(0,243,255,0.3)]">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+          SUZUKI SYSTEM 2084
+        </div>
+        
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-wider text-white mb-2 glow-cyan">
+          OMNICHORD
+        </h1>
+        <p class="text-xs uppercase tracking-widest text-cyan-300/80 font-mono mb-6">
+          SonicString Synthesizer • Digital Strumplate
+        </p>
+
+        <!-- Strum Preview Graphic -->
+        <div class="w-full h-14 rounded-lg bg-slate-950 border border-slate-700/80 flex items-center justify-around px-4 mb-6 strum-ribbon shadow-inner">
+          <div class="h-8 w-1 bg-cyan-500/60 rounded-full animate-pulse"></div>
+          <div class="h-10 w-1 bg-cyan-400 rounded-full animate-pulse delay-75"></div>
+          <div class="h-6 w-1 bg-amber-400/80 rounded-full animate-pulse delay-100"></div>
+          <div class="h-11 w-1.5 bg-fuchsia-400 rounded-full animate-pulse delay-150"></div>
+          <div class="h-7 w-1 bg-cyan-400 rounded-full animate-pulse delay-200"></div>
+          <div class="h-9 w-1 bg-amber-300 rounded-full animate-pulse delay-300"></div>
+        </div>
+
+        <button id="btn-start-audio" class="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-cyan-500 via-sky-400 to-cyan-500 hover:from-cyan-400 hover:to-sky-300 text-slate-950 font-black text-sm uppercase tracking-widest shadow-[0_0_30px_rgba(0,243,255,0.6)] active:scale-95 transition-all flex items-center justify-center gap-3">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          Tap to Power On & Start Audio
+        </button>
+
+        <p class="text-[11px] text-slate-400 mt-4 leading-relaxed font-mono">
+          Mobile browsers require a touch gesture to activate the Web Audio engine. For optimal dual-thumb play, hold your phone horizontally.
+        </p>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. PORTRAIT ORIENTATION BANNER (HELPER)    -->
+    <!-- ========================================== -->
+    <div id="portrait-orientation-warning" class="hidden fixed inset-0 z-40 bg-slate-950/95 backdrop-blur-md flex-col items-center justify-center p-6 text-center">
+      <div class="max-w-xs p-6 rounded-2xl bg-slate-900 border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.25)] flex flex-col items-center">
+        <!-- Rotating Phone Icon -->
+        <div class="w-16 h-16 rounded-2xl border-2 border-amber-400 flex items-center justify-center mb-4 animate-bounce">
+          <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01"/>
+          </svg>
+        </div>
+        <h2 class="text-lg font-bold text-amber-300 tracking-wider mb-2">LANDSCAPE RECOMMENDED</h2>
+        <p class="text-xs text-slate-300 leading-relaxed font-mono mb-4">
+          Omnichord is designed for two-handed landscape play: left thumb holds chords, right finger strums the SonicString touch strip.
+        </p>
+        <button id="btn-dismiss-portrait" class="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold tracking-wider border border-amber-500/40">
+          Play Anyway in Portrait
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 3. TOP CONSOLE / RETRO OLED DISPLAY BAR    -->
+    <!-- ========================================== -->
+    <header class="flex-none px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2 shadow-md">
+      <!-- Brand & Model -->
+      <div class="flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 led-indicator text-cyan-400 animate-pulse"></div>
+        <div class="leading-tight">
+          <div class="text-[10px] sm:text-xs font-black tracking-widest text-cyan-400 glow-cyan">OMNICHORD</div>
+          <div class="text-[8px] sm:text-[9px] font-mono tracking-wider text-slate-400">OM-2084 SYNTH</div>
+        </div>
+      </div>
+
+      <!-- Center OLED Retro Screen -->
+      <div class="crt-screen rounded-md px-3 py-1 sm:px-4 sm:py-1.5 flex items-center gap-3 sm:gap-6 border border-cyan-500/40 min-w-0 flex-1 max-w-xl mx-1 sm:mx-4 justify-between">
+        <!-- Active Chord Indicator -->
+        <div class="flex flex-col min-w-[70px] sm:min-w-[90px]">
+          <span class="text-[8px] uppercase tracking-wider text-cyan-400/70 font-mono">CHORD</span>
+          <span id="oled-chord-display" class="text-xs sm:text-sm font-black tracking-wider text-cyan-300 glow-cyan truncate">C MAJOR</span>
+        </div>
+
+        <!-- Notes in Chord -->
+        <div class="hidden xs:flex flex-col min-w-[80px]">
+          <span class="text-[8px] uppercase tracking-wider text-cyan-400/70 font-mono">SCALE TONES</span>
+          <span id="oled-notes-display" class="text-[10px] sm:text-xs font-bold text-amber-300 glow-amber truncate">C • E • G</span>
+        </div>
+
+        <!-- Strumplate Live Note Hit -->
+        <div class="flex flex-col items-center min-w-[65px] sm:min-w-[80px]">
+          <span class="text-[8px] uppercase tracking-wider text-cyan-400/70 font-mono">STRUM NOTE</span>
+          <span id="oled-strum-display" class="text-xs sm:text-sm font-black text-fuchsia-400 glow-magenta truncate">---</span>
+        </div>
+
+        <!-- Voice / Mode -->
+        <div class="hidden sm:flex flex-col items-end min-w-[75px]">
+          <span class="text-[8px] uppercase tracking-wider text-cyan-400/70 font-mono">SOUND ENGINE</span>
+          <span id="oled-voice-display" class="text-[10px] sm:text-xs font-semibold text-emerald-400 truncate">OM-84 CLASSIC</span>
+        </div>
+      </div>
+
+      <!-- Top Quick Controls (Volume, Sustain, Drone Toggle, Chord Tap Toggle) -->
+      <div class="flex items-center gap-1.5 sm:gap-2 flex-none">
+        <!-- Chord Tap Audio Toggle -->
+        <button id="btn-tap-toggle" title="Toggle Chord Pad Tap Sound (Selected Key Preview)" class="px-2 py-1 sm:px-2.5 sm:py-1 rounded bg-slate-800 border border-cyan-500/50 text-[10px] sm:text-xs font-mono font-bold text-cyan-300 hover:text-white flex items-center gap-1 active:scale-95 transition-all">
+          <span id="tap-led" class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f3ff]"></span>
+          <span>KEY TAP</span>
+        </button>
+
+        <!-- Chord Drone Toggle -->
+        <button id="btn-drone-toggle" title="Toggle Background Chord Drone Organ" class="px-2 py-1 sm:px-2.5 sm:py-1 rounded bg-slate-800 border border-slate-700 text-[10px] sm:text-xs font-mono font-bold text-slate-300 hover:text-white flex items-center gap-1 active:scale-95 transition-all">
+          <span id="drone-led" class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+          <span>DRONE</span>
+        </button>
+
+        <!-- Rhythm Drum Box Toggle -->
+        <button id="btn-rhythm-toggle" title="Start/Stop 80s Rhythm Box" class="px-2 py-1 sm:px-2.5 sm:py-1 rounded bg-slate-800 border border-slate-700 text-[10px] sm:text-xs font-mono font-bold text-slate-300 hover:text-white flex items-center gap-1 active:scale-95 transition-all">
+          <span id="rhythm-led" class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+          <span>BEAT</span>
+        </button>
+
+        <!-- Settings Modal / Drawer Toggle -->
+        <button id="btn-open-settings" title="Sound & Voice Settings" class="p-1 sm:p-1.5 rounded bg-slate-800 border border-slate-700 text-slate-300 hover:text-cyan-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ========================================== -->
+    <!-- 4. MAIN LANDSCAPE PLAYING DECK             -->
+    <!-- ========================================== -->
+    <main class="flex-1 flex flex-col md:flex-row min-h-0 w-full p-1.5 sm:p-2.5 gap-2 overflow-hidden">
+      
+      <!-- LEFT SECTION: CHORD MATRIX (LEFT THUMB) -->
+      <section class="flex flex-col flex-1 md:w-[48%] lg:w-[45%] h-full bg-slate-900/90 rounded-xl border border-slate-800 p-2 sm:p-2.5 shadow-xl min-h-0 overflow-hidden">
+        <!-- Chord Control Header -->
+        <div class="flex-none flex items-center justify-between pb-1.5 mb-1 border-b border-slate-800/80">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-400">CHORD PAD</span>
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800/60 font-mono">TOUCH & HOLD</span>
+          </div>
+          
+          <!-- Key Bank Switcher (Circle of 5ths or 12-keys) -->
+          <div class="flex items-center gap-1 text-[9px] font-mono">
+            <button id="bank-btn-popular" class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">Standard</button>
+            <button id="bank-btn-extended" class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">12 Keys</button>
+          </div>
+        </div>
+
+        <!-- Chord Buttons Matrix (Scrollable if needed on super small devices, optimized for landscape) -->
+        <div id="chord-matrix-container" class="flex-1 grid grid-cols-4 sm:grid-cols-4 gap-1.5 sm:gap-2 min-h-0 overflow-y-auto pr-0.5">
+          <!-- Dynamically populated or rendered buttons -->
+        </div>
+
+        <!-- Chord Quality Mode Tabs (Maj, Min, 7th, Maj7) -->
+        <div class="flex-none pt-2 mt-1 border-t border-slate-800 flex items-center justify-between gap-1 text-[10px] font-mono">
+          <div class="flex items-center gap-1 flex-1">
+            <button id="quality-filter-all" class="px-2 py-1 rounded bg-slate-800 text-cyan-300 font-bold border border-cyan-500/30 flex-1 text-center">ALL</button>
+            <button id="quality-filter-maj" class="px-2 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 flex-1 text-center">MAJ</button>
+            <button id="quality-filter-min" class="px-2 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 flex-1 text-center">MIN</button>
+            <button id="quality-filter-7th" class="px-2 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 flex-1 text-center">7TH</button>
+          </div>
+          <!-- Auto Arp Strum Button -->
+          <button id="btn-auto-strum" class="px-2.5 py-1 rounded bg-fuchsia-950/70 hover:bg-fuchsia-900 text-fuchsia-300 border border-fuchsia-700/60 font-bold text-[10px] tracking-wide flex items-center gap-1">
+            <span>⚡ AUTO STRUM</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- RIGHT SECTION: SONIC STRINGS STRUMPLATE (RIGHT FINGER / MULTI-TOUCH) -->
+      <section class="flex flex-col flex-1 md:w-[52%] lg:w-[55%] h-full bg-slate-900/90 rounded-xl border border-slate-800 p-2 sm:p-2.5 shadow-xl min-h-0 overflow-hidden">
+        <!-- Strumplate Header -->
+        <div class="flex-none flex items-center justify-between pb-1.5 mb-1 border-b border-slate-800/80">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] uppercase font-mono font-bold tracking-widest text-fuchsia-400 glow-magenta">SONICSTRINGS™ STRUMPLATE</span>
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-fuchsia-950/60 text-fuchsia-300 border border-fuchsia-800/60 font-mono">SLIDE TO STRUM</span>
+          </div>
+
+          <div class="flex items-center gap-2 text-[9px] font-mono text-slate-400">
+            <span>OCTAVES:</span>
+            <span class="text-cyan-400 font-bold">LO → HI</span>
+          </div>
+        </div>
+
+        <!-- The Wide Horizontal Touch Strip / Strumplate -->
+        <div class="flex-1 relative w-full h-full strumplate-housing rounded-lg border border-cyan-500/30 overflow-hidden cursor-crosshair">
+          
+          <!-- Background Conductive Copper Strips Grid -->
+          <div id="strumplate-strips" class="absolute inset-0 flex w-full h-full pointer-events-none">
+            <!-- Dynamically populated with 16-24 metallic conductive strum bars -->
+          </div>
+
+          <!-- Strumplate Visual Canvas (Laser Sparkles, Touch Rings, Ripple Waves) -->
+          <canvas id="strumplate-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+
+          <!-- Transparent High-Performance Touch Catch Surface -->
+          <div id="strumplate-touch-surface" class="absolute inset-0 w-full h-full z-20" style="touch-action: none;"></div>
+
+          <!-- Subtle Guide Grid Marks -->
+          <div class="absolute bottom-1 left-2 right-2 flex justify-between text-[8px] font-mono text-cyan-400/50 pointer-events-none z-15">
+            <span>OCT 3 (BASS)</span>
+            <span>OCT 4 (MID)</span>
+            <span>OCT 5 (TREBLE)</span>
+            <span>OCT 6 (CRYSTAL)</span>
+          </div>
+        </div>
+
+        <!-- Strumplate Sub-Toolbar -->
+        <div class="flex-none pt-2 mt-1 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono text-slate-400">
+          <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+              MULTI-TOUCH READY
+            </span>
+            <span class="hidden sm:inline-block">SPEED SENSITIVE CUTOFF</span>
+          </div>
+          
+          <!-- Octave Transpose Quick Shift -->
+          <div class="flex items-center gap-1">
+            <span class="text-[9px]">OCTAVE:</span>
+            <button id="octave-down-btn" class="w-5 h-5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-bold flex items-center justify-center">-</button>
+            <span id="current-octave-display" class="font-bold text-white px-1">0</span>
+            <button id="octave-up-btn" class="w-5 h-5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-bold flex items-center justify-center">+</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- 5. SETTINGS & SYNTH CONTROLS MODAL         -->
+    <!-- ========================================== -->
+    <div id="settings-modal" class="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+      <div class="max-w-md w-full bg-slate-900 border border-cyan-500/50 rounded-2xl p-5 shadow-[0_0_40px_rgba(0,243,255,0.25)] flex flex-col gap-4 text-xs font-mono">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <h3 class="text-sm font-bold text-cyan-400 glow-cyan">SYNTHESIZER PARAMETERS</h3>
+          <button id="btn-close-settings" class="text-slate-400 hover:text-white text-base">✕</button>
+        </div>
+
+        <!-- Voice Selector -->
+        <div>
+          <label class="block text-[10px] uppercase tracking-wider text-slate-400 mb-1.5">TIMBRE / VOICE PRESET</label>
+          <div class="grid grid-cols-2 gap-2" id="voice-preset-buttons">
+            <button data-voice="om84" class="p-2 rounded-lg bg-cyan-950/80 border border-cyan-500/60 text-cyan-300 text-left font-bold active:scale-95 transition-all">
+              1. OM-84 Classic
+              <span class="block text-[8px] text-cyan-400/70 font-normal">Dual Square/Saw Hybrid</span>
+            </button>
+            <button data-voice="harp" class="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-left font-bold active:scale-95 transition-all">
+              2. Crystal Harp
+              <span class="block text-[8px] text-slate-400 font-normal">Pure Harmonic Chimes</span>
+            </button>
+            <button data-voice="retro80s" class="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-left font-bold active:scale-95 transition-all">
+              3. Cosmic 80s Lead
+              <span class="block text-[8px] text-slate-400 font-normal">Resonant Filter Sweep</span>
+            </button>
+            <button data-voice="celeste" class="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-left font-bold active:scale-95 transition-all">
+              4. Space Flute
+              <span class="block text-[8px] text-slate-400 font-normal">Soft Warm Vibrato Pad</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sliders: Sustain & Master Volume -->
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+              <span>STRUM SUSTAIN / DECAY TIME</span>
+              <span id="sustain-value-display" class="text-cyan-400 font-bold">1.2s</span>
+            </div>
+            <input id="slider-sustain" type="range" min="0.2" max="3.5" step="0.1" value="1.2" class="w-full accent-cyan-400 bg-slate-800 rounded-lg cursor-pointer h-2" />
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+              <span>MASTER SYNTH VOLUME</span>
+              <span id="volume-value-display" class="text-cyan-400 font-bold">85%</span>
+            </div>
+            <input id="slider-volume" type="range" min="0" max="100" step="1" value="85" class="w-full accent-cyan-400 bg-slate-800 rounded-lg cursor-pointer h-2" />
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+              <span>BACKING CHORD DRONE VOLUME</span>
+              <span id="drone-volume-display" class="text-amber-400 font-bold">60%</span>
+            </div>
+            <input id="slider-drone-volume" type="range" min="0" max="100" step="1" value="60" class="w-full accent-amber-400 bg-slate-800 rounded-lg cursor-pointer h-2" />
+          </div>
+
+          <!-- Rhythm Drum Box Settings -->
+          <div class="pt-2 border-t border-slate-800">
+            <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+              <span>RHYTHM TEMPO (BPM)</span>
+              <span id="tempo-value-display" class="text-fuchsia-400 font-bold">115 BPM</span>
+            </div>
+            <input id="slider-tempo" type="range" min="60" max="180" step="1" value="115" class="w-full accent-fuchsia-400 bg-slate-800 rounded-lg cursor-pointer h-2" />
+            
+            <div class="mt-2 flex items-center justify-between">
+              <span class="text-[10px] text-slate-400">RHYTHM PATTERN:</span>
+              <select id="rhythm-pattern-select" class="bg-slate-800 text-slate-200 border border-slate-700 rounded px-2 py-1 text-[10px]">
+                <option value="rock">80s Classic Rock</option>
+                <option value="disco">Synthwave Disco</option>
+                <option value="waltz">Omni Waltz (3/4)</option>
+                <option value="bossa">Bossa Nova</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Chord Pad Tap Sound Toggle -->
+          <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-[10px] text-slate-200 font-bold">CHORD PAD TAP SOUND</div>
+              <div class="text-[8px] text-slate-400">Play chord preview in selected key when tapping pad</div>
+            </div>
+            <button id="modal-tap-toggle-btn" class="px-2.5 py-1 rounded bg-cyan-950 border border-cyan-500 text-cyan-300 font-bold text-[10px]">
+              ENABLED
+            </button>
+          </div>
+        </div>
+
+        <button id="btn-done-settings" class="w-full py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold tracking-wider uppercase mt-1">
+          Apply & Return
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 6. COMPLETE VANILLA JAVASCRIPT ENGINE      -->
+    <!-- ========================================== -->
+    <script>
+      /**
+       * OMNICHORD OM-2084 WEB AUDIO & MULTI-TOUCH ENGINE
+       * Self-contained, zero-dependency vanilla JS synthesizer
+       */
+
+      // --- GLOBAL MUSIC THEORY CONSTANTS ---
+      const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      
+      // Standard Popular Omnichord Keys (arranged circle-of-fifths style for intuitive thumb reach)
+      const POPULAR_KEYS = [
+        { name: 'C', rootMidi: 48 },
+        { name: 'G', rootMidi: 55 },
+        { name: 'D', rootMidi: 50 },
+        { name: 'A', rootMidi: 57 },
+        { name: 'E', rootMidi: 52 },
+        { name: 'F', rootMidi: 53 },
+        { name: 'Bb', rootMidi: 58 },
+        { name: 'Eb', rootMidi: 51 }
+      ];
+
+      // Full 12 Chromatic Keys
+      const ALL_12_KEYS = [
+        { name: 'C', rootMidi: 48 },
+        { name: 'F', rootMidi: 53 },
+        { name: 'Bb', rootMidi: 58 },
+        { name: 'Eb', rootMidi: 51 },
+        { name: 'Ab', rootMidi: 56 },
+        { name: 'Db', rootMidi: 49 },
+        { name: 'F#', rootMidi: 54 },
+        { name: 'B', rootMidi: 47 },
+        { name: 'E', rootMidi: 52 },
+        { name: 'A', rootMidi: 57 },
+        { name: 'D', rootMidi: 50 },
+        { name: 'G', rootMidi: 55 }
+      ];
+
+      // Chord Interval Templates (relative semitones from root)
+      const CHORD_TYPES = {
+        maj: { label: 'MAJ', intervals: [0, 4, 7], colorClass: 'active-major', styleBorder: '#38bdf8' },
+        min: { label: 'MIN', intervals: [0, 3, 7], colorClass: 'active-minor', styleBorder: '#fbbf24' },
+        '7th': { label: '7TH', intervals: [0, 4, 7, 10], colorClass: 'active-7th', styleBorder: '#e879f9' },
+        maj7: { label: 'MAJ7', intervals: [0, 4, 7, 11], colorClass: 'active-maj7', styleBorder: '#34d399' }
+      };
+
+      // --- APPLICATION STATE ---
+      const state = {
+        audioUnlocked: false,
+        keyBank: 'popular', // 'popular' or 'extended'
+        qualityFilter: 'all', // 'all', 'maj', 'min', '7th'
+        activeRoot: POPULAR_KEYS[0], // C
+        activeType: 'maj',
+        activeChordNotes: [], // Precalculated frequencies & names across 4 octaves
+        octaveShift: 0, // -1, 0, +1
+        voicePreset: 'om84', // 'om84', 'harp', 'retro80s', 'celeste'
+        sustainTime: 1.2, // seconds
+        masterVolume: 0.85,
+        droneVolume: 0.6,
+        isDroneActive: false,
+        isRhythmActive: false,
+        bpm: 115,
+        rhythmPattern: 'rock',
+        numStrumStrips: 24, // High-resolution touch segments
+        lastPlayedStrumIndex: -1,
+        chordTapSoundEnabled: true // Toggles chord tap sound (changes with selected key)
+      };
+
+      // --- WEB AUDIO API GRAPH ---
+      let audioCtx = null;
+      let masterGainNode = null;
+      let compressorNode = null;
+      let analyserNode = null;
+
+      // Drone Node References
+      let currentDroneNodes = [];
+      let droneMasterGain = null;
+
+      // Rhythm Box Sequencer References
+      let rhythmIntervalId = null;
+      let rhythmStep = 0;
+
+      /**
+       * Convert MIDI note number to Frequency (Hz)
+       * Standard A4 = 440 Hz = MIDI 69
+       */
+      function midiToFreq(midi) {
+        return 440 * Math.pow(2, (midi - 69) / 12);
+      }
+
+      function getMidiNoteName(midi) {
+        const octave = Math.floor(midi / 12) - 1;
+        const noteName = NOTE_NAMES[midi % 12];
+        return `${noteName}${octave}`;
+      }
+
+      /**
+       * Calculate all available notes in the active chord spanning 4 octaves
+       * This forms the SonicString strumplate note sequence
+       */
+      function computeChordNotes() {
+        const chordDef = CHORD_TYPES[state.activeType];
+        const baseRoot = state.activeRoot.rootMidi + (state.octaveShift * 12);
+        const notes = [];
+
+        // Distribute intervals across 4 octaves (octave 3, 4, 5, 6)
+        const octaves = [0, 1, 2, 3];
+        for (const oct of octaves) {
+          for (const interval of chordDef.intervals) {
+            const midi = baseRoot + (oct * 12) + interval;
+            // Keep in audible musical range
+            if (midi >= 36 && midi <= 108) {
+              notes.push({
+                midi: midi,
+                freq: midiToFreq(midi),
+                name: getMidiNoteName(midi),
+                interval: interval
+              });
+            }
+          }
+        }
+
+        // Sort ascending by pitch
+        notes.sort((a, b) => a.midi - b.midi);
+        state.activeChordNotes = notes;
+
+        // Update UI Displays
+        updateDisplayScreen();
+      }
+
+      /**
+       * Initialize AudioContext with interactive latency hints
+       */
+      function initAudioEngine() {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContextClass({ latencyHint: 'interactive' });
+
+          // Master Dynamics Compressor: prevents digital clipping during fast strums
+          compressorNode = audioCtx.createDynamicsCompressor();
+          compressorNode.threshold.setValueAtTime(-14, audioCtx.currentTime);
+          compressorNode.knee.setValueAtTime(20, audioCtx.currentTime);
+          compressorNode.ratio.setValueAtTime(8, audioCtx.currentTime);
+          compressorNode.attack.setValueAtTime(0.003, audioCtx.currentTime);
+          compressorNode.release.setValueAtTime(0.12, audioCtx.currentTime);
+
+          // Master Gain Node
+          masterGainNode = audioCtx.createGain();
+          masterGainNode.gain.setValueAtTime(state.masterVolume, audioCtx.currentTime);
+
+          // Analyser Node for visual reactive effects
+          analyserNode = audioCtx.createAnalyser();
+          analyserNode.fftSize = 64;
+
+          // Drone Master Gain
+          droneMasterGain = audioCtx.createGain();
+          droneMasterGain.gain.setValueAtTime(state.droneVolume * 0.45, audioCtx.currentTime);
+          droneMasterGain.connect(compressorNode);
+
+          // Routing: MasterGain -> Compressor -> Analyser -> Destination
+          masterGainNode.connect(compressorNode);
+          compressorNode.connect(analyserNode);
+          analyserNode.connect(audioCtx.destination);
+        }
+
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        state.audioUnlocked = true;
+      }
+
+      /**
+       * Play an authentic, snappy chord preview in the EXACT selected key & chord quality
+       * Accurately sounds the chord notes (Root, 3rd, 5th, etc.) in the selected key!
+       */
+      function playChordTapPreview(key, type) {
+        if (!state.chordTapSoundEnabled || !audioCtx || !state.audioUnlocked) return;
+        const chordDef = CHORD_TYPES[type];
+        const baseRoot = key.rootMidi + (state.octaveShift * 12);
+
+        // Play the chord triad/intervals in the selected key with a rapid 24ms micro-strum
+        chordDef.intervals.forEach((interval, idx) => {
+          const midi = baseRoot + interval;
+          const freq = midiToFreq(midi);
+          setTimeout(() => {
+            playStrumVoice(freq, 0.85);
+          }, idx * 24);
+        });
+      }
+
+      /**
+       * SYNTHESIZER VOICE ENGINE:
+       * Low-latency, punchy attack, zero popping, dynamic velocity modulation
+       */
+      function playStrumVoice(freq, velocity = 1.0) {
+        if (!audioCtx || !state.audioUnlocked) return;
+        const now = audioCtx.currentTime;
+        const sustain = state.sustainTime;
+
+        // Clamp velocity
+        const vel = Math.max(0.4, Math.min(1.4, velocity));
+
+        if (state.voicePreset === 'om84') {
+          // ==========================================
+          // 1. CLASSIC SUZUKI OM-84 VOICE
+          // Dual Oscillator: Square (warm fundamental) + Detuned Sawtooth
+          // ==========================================
+          const oscSquare = audioCtx.createOscillator();
+          const oscSaw = audioCtx.createOscillator();
+          const filter = audioCtx.createBiquadFilter();
+          const voiceGain = audioCtx.createGain();
+          const vibratoLfo = audioCtx.createOscillator();
+          const vibratoGain = audioCtx.createGain();
+
+          oscSquare.type = 'square';
+          oscSaw.type = 'sawtooth';
+
+          // Base frequency & slight detuning for analog chorus warmth
+          oscSquare.frequency.setValueAtTime(freq, now);
+          oscSaw.frequency.setValueAtTime(freq, now);
+          oscSaw.detune.setValueAtTime(5, now); // +5 cents
+
+          // Subtle Vibrato LFO (5.8Hz)
+          vibratoLfo.frequency.setValueAtTime(5.8, now);
+          vibratoGain.gain.setValueAtTime(4.5, now); // gentle frequency pitch wobble
+          vibratoLfo.connect(vibratoGain);
+          vibratoGain.connect(oscSquare.detune);
+          vibratoGain.connect(oscSaw.detune);
+
+          // 2-pole Lowpass Filter with touch velocity-sensitive cutoff
+          filter.type = 'lowpass';
+          const baseCutoff = Math.min(10000, 2200 * vel + freq * 0.8);
+          filter.frequency.setValueAtTime(baseCutoff, now);
+          filter.frequency.exponentialRampToValueAtTime(Math.max(400, baseCutoff * 0.4), now + sustain);
+          filter.Q.setValueAtTime(2.2, now);
+
+          // Snappy envelope: 4ms attack, smooth exponential decay
+          const peakGain = 0.22 * vel;
+          voiceGain.gain.setValueAtTime(0.0001, now);
+          voiceGain.gain.exponentialRampToValueAtTime(peakGain, now + 0.004);
+          voiceGain.gain.exponentialRampToValueAtTime(0.0001, now + sustain);
+
+          // Connect audio graph
+          oscSquare.connect(filter);
+          oscSaw.connect(filter);
+          filter.connect(voiceGain);
+          voiceGain.connect(masterGainNode);
+
+          // Start & schedule stop
+          oscSquare.start(now);
+          oscSaw.start(now);
+          vibratoLfo.start(now);
+
+          oscSquare.stop(now + sustain + 0.05);
+          oscSaw.stop(now + sustain + 0.05);
+          vibratoLfo.stop(now + sustain + 0.05);
+
+        } else if (state.voicePreset === 'harp') {
+          // ==========================================
+          // 2. CRYSTAL HARP VOICE
+          // Pure additive chime harmonics (Sine 1x + Sine 2x + Sine 3x)
+          // ==========================================
+          const oscFundamental = audioCtx.createOscillator();
+          const oscHarmonic1 = audioCtx.createOscillator();
+          const voiceGain = audioCtx.createGain();
+
+          oscFundamental.type = 'sine';
+          oscHarmonic1.type = 'sine';
+
+          oscFundamental.frequency.setValueAtTime(freq, now);
+          oscHarmonic1.frequency.setValueAtTime(freq * 2, now); // 2nd harmonic
+
+          const peakGain = 0.26 * vel;
+          voiceGain.gain.setValueAtTime(0.0001, now);
+          voiceGain.gain.exponentialRampToValueAtTime(peakGain, now + 0.003);
+          voiceGain.gain.exponentialRampToValueAtTime(0.0001, now + sustain * 1.2);
+
+          oscFundamental.connect(voiceGain);
+          oscHarmonic1.connect(voiceGain);
+          voiceGain.connect(masterGainNode);
+
+          oscFundamental.start(now);
+          oscHarmonic1.start(now);
+          oscFundamental.stop(now + sustain * 1.2 + 0.05);
+          oscHarmonic1.stop(now + sustain * 1.2 + 0.05);
+
+        } else if (state.voicePreset === 'retro80s') {
+          // ==========================================
+          // 3. COSMIC 80s RESONANT LEAD
+          // Resonant sawtooth with dynamic envelope filter sweep
+          // ==========================================
+          const osc = audioCtx.createOscillator();
+          const filter = audioCtx.createBiquadFilter();
+          const voiceGain = audioCtx.createGain();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now);
+
+          filter.type = 'lowpass';
+          filter.Q.setValueAtTime(5.5, now);
+          filter.frequency.setValueAtTime(Math.min(12000, 4800 * vel), now);
+          filter.frequency.exponentialRampToValueAtTime(500, now + sustain * 0.8);
+
+          const peakGain = 0.2 * vel;
+          voiceGain.gain.setValueAtTime(0.0001, now);
+          voiceGain.gain.exponentialRampToValueAtTime(peakGain, now + 0.005);
+          voiceGain.gain.exponentialRampToValueAtTime(0.0001, now + sustain);
+
+          osc.connect(filter);
+          filter.connect(voiceGain);
+          voiceGain.connect(masterGainNode);
+
+          osc.start(now);
+          osc.stop(now + sustain + 0.05);
+
+        } else {
+          // ==========================================
+          // 4. SPACE FLUTE / CELESTE
+          // Warm triangle with slow lush vibrato
+          // ==========================================
+          const osc = audioCtx.createOscillator();
+          const filter = audioCtx.createBiquadFilter();
+          const voiceGain = audioCtx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(2800, now);
+
+          const peakGain = 0.28 * vel;
+          voiceGain.gain.setValueAtTime(0.0001, now);
+          voiceGain.gain.exponentialRampToValueAtTime(peakGain, now + 0.015);
+          voiceGain.gain.exponentialRampToValueAtTime(0.0001, now + sustain * 1.1);
+
+          osc.connect(filter);
+          filter.connect(voiceGain);
+          voiceGain.connect(masterGainNode);
+
+          osc.start(now);
+          osc.stop(now + sustain * 1.1 + 0.05);
+        }
+      }
+
+      /**
+       * BACKING CHORD DRONE ORGAN
+       * Smoothly crossfades a warm analog pad chord (Bass root + triad)
+       */
+      function updateChordDrone() {
+        if (!audioCtx || !state.audioUnlocked) return;
+        const now = audioCtx.currentTime;
+
+        // Fade out previous drone voices smoothly (preventing clicks)
+        if (currentDroneNodes.length > 0) {
+          const oldNodes = currentDroneNodes;
+          currentDroneNodes = [];
+          oldNodes.forEach(node => {
+            try {
+              node.gain.gain.setValueAtTime(node.gain.gain.value, now);
+              node.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+              node.osc.stop(now + 0.09);
+            } catch (e) {
+              // Ignore stopped nodes
+            }
+          });
+        }
+
+        if (!state.isDroneActive) return;
+
+        // Build drone notes: Bass root in Octave 2 + Chord tones in Octave 3
+        const chordDef = CHORD_TYPES[state.activeType];
+        const bassMidi = (state.activeRoot.rootMidi % 12) + 36; // octave 2
+        const droneMidis = [bassMidi];
+
+        chordDef.intervals.forEach(interval => {
+          droneMidis.push(bassMidi + 12 + interval); // octave 3
+        });
+
+        // Spawn low-CPU triangle/sine drone oscillators
+        droneMidis.forEach((midi, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const filter = audioCtx.createBiquadFilter();
+
+          // Bass is sine/triangle, higher tones are gentle filtered triangles
+          osc.type = idx === 0 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(midiToFreq(midi), now);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(idx === 0 ? 300 : 1200, now);
+
+          // Fade in smoothly
+          const targetGain = idx === 0 ? 0.35 : 0.18;
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(targetGain, now + 0.08);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(droneMasterGain);
+
+          osc.start(now);
+          currentDroneNodes.push({ osc, gain });
+        });
+      }
+
+      /**
+       * VINTAGE RHYTHM BOX SYNTHESIS (Drum Machine)
+       * Synthesizes 80s kick, snare, and hi-hat on scheduled clocks
+       */
+      function playDrumSound(type) {
+        if (!audioCtx || !state.audioUnlocked) return;
+        const now = audioCtx.currentTime;
+
+        if (type === 'kick') {
+          // Pitch-swept sine wave
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(38, now + 0.09);
+
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+          osc.connect(gain);
+          gain.connect(masterGainNode);
+          osc.start(now);
+          osc.stop(now + 0.2);
+
+        } else if (type === 'snare') {
+          // Bandpass white noise + tone
+          const bufferSize = audioCtx.sampleRate * 0.12;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1800, now);
+          filter.Q.setValueAtTime(1.5, now);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(masterGainNode);
+          noise.start(now);
+          noise.stop(now + 0.13);
+
+        } else if (type === 'hihat') {
+          // Short crisp metallic noise pulse
+          const bufferSize = audioCtx.sampleRate * 0.04;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.setValueAtTime(7000, now);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(masterGainNode);
+          noise.start(now);
+          noise.stop(now + 0.05);
+        }
+      }
+
+      function startRhythmSequencer() {
+        if (rhythmIntervalId) clearInterval(rhythmIntervalId);
+        rhythmStep = 0;
+        const stepTimeMs = (60000 / state.bpm) / 4; // 16th notes
+
+        rhythmIntervalId = setInterval(() => {
+          if (!state.isRhythmActive) return;
+
+          // Flash Beat LED
+          const rhythmLED = document.getElementById('rhythm-led');
+          if (rhythmStep % 4 === 0) {
+            rhythmLED.classList.add('bg-fuchsia-400', 'shadow-[0_0_8px_#ff007f]');
+            setTimeout(() => {
+              rhythmLED.classList.remove('bg-fuchsia-400', 'shadow-[0_0_8px_#ff007f]');
+              rhythmLED.classList.add('bg-fuchsia-700');
+            }, 60);
+          }
+
+          // Rhythm Patterns:
+          if (state.rhythmPattern === 'rock') {
+            // 4/4 Classic Rock Beat
+            if (rhythmStep === 0 || rhythmStep === 8) playDrumSound('kick');
+            if (rhythmStep === 4 || rhythmStep === 12) playDrumSound('snare');
+            if (rhythmStep % 2 === 0) playDrumSound('hihat');
+          } else if (state.rhythmPattern === 'disco') {
+            // Four-on-the-floor Disco
+            if (rhythmStep % 4 === 0) playDrumSound('kick');
+            if (rhythmStep === 4 || rhythmStep === 12) playDrumSound('snare');
+            if (rhythmStep % 2 === 1) playDrumSound('hihat'); // off-beat open hat feel
+          } else if (state.rhythmPattern === 'waltz') {
+            // 3/4 Waltz
+            const step12 = rhythmStep % 12;
+            if (step12 === 0) playDrumSound('kick');
+            if (step12 === 4 || step12 === 8) {
+              playDrumSound('snare');
+              playDrumSound('hihat');
+            }
+          } else {
+            // Bossa Nova
+            if (rhythmStep === 0 || rhythmStep === 6 || rhythmStep === 10) playDrumSound('kick');
+            if (rhythmStep === 4 || rhythmStep === 12) playDrumSound('snare');
+            if (rhythmStep % 2 === 0) playDrumSound('hihat');
+          }
+
+          rhythmStep = (rhythmStep + 1) % 16;
+        }, stepTimeMs);
+      }
+
+      function stopRhythmSequencer() {
+        if (rhythmIntervalId) {
+          clearInterval(rhythmIntervalId);
+          rhythmIntervalId = null;
+        }
+        const rhythmLED = document.getElementById('rhythm-led');
+        rhythmLED.className = 'w-1.5 h-1.5 rounded-full bg-slate-600';
+      }
+
+      // --- UI UPDATERS & RENDERERS ---
+
+      function updateDisplayScreen() {
+        const chordName = `${state.activeRoot.name} ${CHORD_TYPES[state.activeType].label}`;
+        document.getElementById('oled-chord-display').textContent = chordName;
+
+        // Scale notes summary
+        const chordDef = CHORD_TYPES[state.activeType];
+        const rootMidi = state.activeRoot.rootMidi;
+        const triadNames = chordDef.intervals.map(int => NOTE_NAMES[(rootMidi + int) % 12]);
+        document.getElementById('oled-notes-display').textContent = triadNames.join(' • ');
+
+        // Active button styles
+        document.querySelectorAll('.chord-btn').forEach(btn => {
+          const root = btn.dataset.root;
+          const type = btn.dataset.type;
+          const isActive = (root === state.activeRoot.name && type === state.activeType);
+
+          btn.classList.remove('is-active', 'active-major', 'active-minor', 'active-7th', 'active-maj7');
+          if (isActive) {
+            btn.classList.add('is-active', CHORD_TYPES[type].colorClass);
+          }
+        });
+
+        // Re-render Strumplate Visual Strips with new notes
+        renderStrumplateStrips();
+      }
+
+      /**
+       * Render the Strumplate Metallic Strips with note markings
+       */
+      function renderStrumplateStrips() {
+        const container = document.getElementById('strumplate-strips');
+        container.innerHTML = '';
+
+        const notes = state.activeChordNotes;
+        if (!notes || notes.length === 0) return;
+
+        notes.forEach((note, index) => {
+          const strip = document.createElement('div');
+          strip.className = 'strum-strip flex-1 h-full flex flex-col justify-between items-center py-2 px-0.5';
+          strip.dataset.index = index;
+
+          // Etched note label on top and bottom of each strip
+          const labelTop = document.createElement('span');
+          labelTop.className = 'text-[7px] sm:text-[9px] font-mono font-bold text-cyan-300/40 pointer-events-none';
+          labelTop.textContent = note.name;
+
+          // Center conductive metallic groove
+          const groove = document.createElement('div');
+          groove.className = 'w-[1px] flex-1 bg-gradient-to-b from-cyan-500/10 via-amber-400/20 to-cyan-500/10 rounded-full my-1 pointer-events-none';
+
+          const labelBottom = document.createElement('span');
+          labelBottom.className = 'text-[7px] sm:text-[8px] font-mono text-slate-500 pointer-events-none';
+          labelBottom.textContent = (index + 1);
+
+          strip.appendChild(labelTop);
+          strip.appendChild(groove);
+          strip.appendChild(labelBottom);
+          container.appendChild(strip);
+        });
+      }
+
+      /**
+       * Populate the Chord Button Matrix on the left panel
+       */
+      function populateChordMatrix() {
+        const container = document.getElementById('chord-matrix-container');
+        container.innerHTML = '';
+
+        const keys = state.keyBank === 'popular' ? POPULAR_KEYS : ALL_12_KEYS;
+        const types = state.qualityFilter === 'all'
+          ? ['maj', 'min', '7th', 'maj7']
+          : [state.qualityFilter];
+
+        keys.forEach(key => {
+          types.forEach(type => {
+            const btn = document.createElement('button');
+            const chordDef = CHORD_TYPES[type];
+            const isCurrentActive = (key.name === state.activeRoot.name && type === state.activeType);
+
+            btn.className = `chord-btn relative flex flex-col items-center justify-center p-2 rounded-lg bg-slate-800 border border-slate-700/80 active:scale-95 text-center`;
+            if (isCurrentActive) {
+              btn.classList.add('is-active', chordDef.colorClass);
+            }
+
+            btn.dataset.root = key.name;
+            btn.dataset.type = type;
+
+            btn.innerHTML = `
+              <div class="flex items-baseline gap-1 pointer-events-none">
+                <span class="text-sm sm:text-base font-black tracking-tight text-white">${key.name}</span>
+                <span class="text-[9px] font-mono uppercase text-slate-400">${chordDef.label}</span>
+              </div>
+              <div class="w-1.5 h-1.5 rounded-full bg-slate-600 mt-1 pointer-events-none"></div>
+            `;
+
+            // Chord selection touch/click handlers
+            const selectChord = (e) => {
+              if (e) e.preventDefault();
+              initAudioEngine();
+
+              state.activeRoot = key;
+              state.activeType = type;
+              computeChordNotes();
+              updateChordDrone();
+              playChordTapPreview(key, type);
+            };
+
+            btn.addEventListener('touchstart', selectChord, { passive: false });
+            btn.addEventListener('mousedown', selectChord);
+
+            container.appendChild(btn);
+          });
+        });
+      }
+
+      // --- STRUMPLATE TOUCH TRACKING & AUDIO SCHEDULING ---
+      
+      // Multi-touch map: touchId -> { lastNoteIndex, lastX, lastTime }
+      const activeTouchPointers = new Map();
+
+      // Visual Canvas Particles
+      const particles = [];
+      let canvas, ctx;
+
+      function initStrumplateCanvas() {
+        canvas = document.getElementById('strumplate-canvas');
+        ctx = canvas.getContext('2d');
+
+        function resize() {
+          const rect = canvas.getBoundingClientRect();
+          canvas.width = rect.width * window.devicePixelRatio;
+          canvas.height = rect.height * window.devicePixelRatio;
+          ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        window.addEventListener('resize', resize);
+        setTimeout(resize, 100);
+
+        // Particle rendering loop
+        function renderParticles() {
+          const rect = canvas.getBoundingClientRect();
+          ctx.clearRect(0, 0, rect.width, rect.height);
+
+          // Draw active touch points & sparkles
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.04;
+            p.size = Math.max(0, p.size - 0.2);
+
+            if (p.life <= 0) {
+              particles.splice(i, 1);
+              continue;
+            }
+
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          requestAnimationFrame(renderParticles);
+        }
+        requestAnimationFrame(renderParticles);
+      }
+
+      function spawnTouchSparks(x, y, color = '#00f3ff') {
+        for (let i = 0; i < 6; i++) {
+          particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 4,
+            vy: (Math.random() - 0.5) * 4,
+            size: Math.random() * 3 + 2,
+            color: Math.random() > 0.5 ? color : '#ff007f',
+            life: 1.0
+          });
+        }
+      }
+
+      /**
+       * Process finger position on strumplate and trigger notes
+       */
+      function processStrumTouch(touchId, clientX, clientY) {
+        initAudioEngine();
+
+        const surface = document.getElementById('strumplate-touch-surface');
+        const rect = surface.getBoundingClientRect();
+
+        // Normalized X between 0.0 and 1.0
+        const relX = clientX - rect.left;
+        const relY = clientY - rect.top;
+        const normX = Math.max(0, Math.min(0.999, relX / rect.width));
+
+        const notes = state.activeChordNotes;
+        if (!notes || notes.length === 0) return;
+
+        // Map normalized X to note index
+        const noteIndex = Math.floor(normX * notes.length);
+
+        const currentTime = performance.now();
+        const prevData = activeTouchPointers.get(touchId);
+
+        let velocity = 1.0;
+        if (prevData) {
+          const deltaX = Math.abs(relX - prevData.lastX);
+          const deltaTime = Math.max(1, currentTime - prevData.lastTime);
+          const speed = (deltaX / deltaTime) * 10; // pixels per ms
+          velocity = Math.max(0.6, Math.min(1.5, 0.7 + speed * 0.4));
+        }
+
+        // Trigger note if moving to a new strip or first touch
+        if (!prevData || prevData.lastNoteIndex !== noteIndex) {
+          const noteObj = notes[noteIndex];
+          playStrumVoice(noteObj.freq, velocity);
+
+          // Update OLED strum note display
+          document.getElementById('oled-strum-display').textContent = noteObj.name;
+
+          // Flash corresponding visual strip
+          const stripElements = document.querySelectorAll('.strum-strip');
+          if (stripElements[noteIndex]) {
+            stripElements[noteIndex].classList.add('active-hit');
+            setTimeout(() => {
+              stripElements[noteIndex].classList.remove('active-hit');
+            }, 140);
+          }
+
+          // Spawn laser sparks
+          spawnTouchSparks(relX, relY);
+        }
+
+        activeTouchPointers.set(touchId, {
+          lastNoteIndex: noteIndex,
+          lastX: relX,
+          lastTime: currentTime
+        });
+      }
+
+      /**
+       * Bind multi-touch and pointer events to the Strumplate
+       */
+      function bindStrumplateEvents() {
+        const surface = document.getElementById('strumplate-touch-surface');
+
+        // MULTI-TOUCH HANDLERS (touchstart, touchmove, touchend, touchcancel)
+        surface.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            processStrumTouch(t.identifier, t.clientX, t.clientY);
+          }
+        }, { passive: false });
+
+        surface.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            processStrumTouch(t.identifier, t.clientX, t.clientY);
+          }
+        }, { passive: false });
+
+        const endTouch = (e) => {
+          e.preventDefault();
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            activeTouchPointers.delete(e.changedTouches[i].identifier);
+          }
+        };
+
+        surface.addEventListener('touchend', endTouch, { passive: false });
+        surface.addEventListener('touchcancel', endTouch, { passive: false });
+
+        // MOUSE / POINTER FALLBACK (Desktop support)
+        let isMouseDown = false;
+        surface.addEventListener('mousedown', (e) => {
+          isMouseDown = true;
+          processStrumTouch('mouse', e.clientX, e.clientY);
+        });
+        window.addEventListener('mousemove', (e) => {
+          if (!isMouseDown) return;
+          processStrumTouch('mouse', e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', () => {
+          if (isMouseDown) {
+            isMouseDown = false;
+            activeTouchPointers.delete('mouse');
+          }
+        });
+      }
+
+      /**
+       * Automated Harp Arpeggiator (Classic Omnichord feature)
+       */
+      function triggerAutoStrum() {
+        initAudioEngine();
+        const notes = state.activeChordNotes;
+        if (!notes || notes.length === 0) return;
+
+        const surface = document.getElementById('strumplate-touch-surface');
+        const rect = surface.getBoundingClientRect();
+        const delayBetweenNotes = 35; // ms
+
+        notes.forEach((note, idx) => {
+          setTimeout(() => {
+            playStrumVoice(note.freq, 1.0);
+            document.getElementById('oled-strum-display').textContent = note.name;
+
+            const stripElements = document.querySelectorAll('.strum-strip');
+            if (stripElements[idx]) {
+              stripElements[idx].classList.add('active-hit');
+              setTimeout(() => stripElements[idx].classList.remove('active-hit'), 120);
+            }
+
+            const x = (idx / notes.length) * rect.width;
+            spawnTouchSparks(x, rect.height * 0.5);
+          }, idx * delayBetweenNotes);
+        });
+      }
+
+      // --- EVENT LISTENERS & SETUP ---
+      function setupUIHandlers() {
+        // Tap to Start Audio Splash Screen
+        document.getElementById('btn-start-audio').addEventListener('click', () => {
+          initAudioEngine();
+          const splash = document.getElementById('audio-splash-overlay');
+          splash.classList.add('opacity-0', 'pointer-events-none');
+          setTimeout(() => splash.remove(), 350);
+        });
+
+        // Portrait bypass
+        document.getElementById('btn-dismiss-portrait').addEventListener('click', () => {
+          document.getElementById('portrait-orientation-warning').classList.add('hidden');
+        });
+
+        // Key Bank Tabs (Standard vs 12-Keys)
+        const bankPop = document.getElementById('bank-btn-popular');
+        const bankExt = document.getElementById('bank-btn-extended');
+
+        bankPop.addEventListener('click', () => {
+          state.keyBank = 'popular';
+          bankPop.className = 'px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold';
+          bankExt.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700';
+          populateChordMatrix();
+        });
+
+        bankExt.addEventListener('click', () => {
+          state.keyBank = 'extended';
+          bankExt.className = 'px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold';
+          bankPop.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700';
+          populateChordMatrix();
+        });
+
+        // Chord Quality Filter Tabs
+        const qFilters = {
+          all: document.getElementById('quality-filter-all'),
+          maj: document.getElementById('quality-filter-maj'),
+          min: document.getElementById('quality-filter-min'),
+          '7th': document.getElementById('quality-filter-7th')
+        };
+
+        Object.keys(qFilters).forEach(key => {
+          qFilters[key].addEventListener('click', () => {
+            state.qualityFilter = key;
+            Object.keys(qFilters).forEach(k => {
+              qFilters[k].className = k === key
+                ? 'px-2 py-1 rounded bg-slate-800 text-cyan-300 font-bold border border-cyan-500/30 flex-1 text-center'
+                : 'px-2 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 flex-1 text-center';
+            });
+            populateChordMatrix();
+          });
+        });
+
+        // Auto Strum Arpeggiator Button
+        document.getElementById('btn-auto-strum').addEventListener('click', triggerAutoStrum);
+
+        // Chord Pad Tap Sound Toggle
+        const tapBtn = document.getElementById('btn-tap-toggle');
+        const tapLed = document.getElementById('tap-led');
+        const modalTapBtn = document.getElementById('modal-tap-toggle-btn');
+
+        function updateTapSoundUI() {
+          if (state.chordTapSoundEnabled) {
+            if (tapLed) tapLed.className = 'w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f3ff]';
+            if (tapBtn) {
+              tapBtn.classList.add('border-cyan-500/50', 'text-cyan-300');
+              tapBtn.classList.remove('border-slate-700', 'text-slate-400');
+            }
+            if (modalTapBtn) {
+              modalTapBtn.textContent = 'ENABLED';
+              modalTapBtn.className = 'px-2.5 py-1 rounded bg-cyan-950 border border-cyan-500 text-cyan-300 font-bold text-[10px]';
+            }
+          } else {
+            if (tapLed) tapLed.className = 'w-1.5 h-1.5 rounded-full bg-slate-600';
+            if (tapBtn) {
+              tapBtn.classList.remove('border-cyan-500/50', 'text-cyan-300');
+              tapBtn.classList.add('border-slate-700', 'text-slate-400');
+            }
+            if (modalTapBtn) {
+              modalTapBtn.textContent = 'MUTED';
+              modalTapBtn.className = 'px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-400 font-bold text-[10px]';
+            }
+          }
+        }
+
+        if (tapBtn) {
+          tapBtn.addEventListener('click', () => {
+            initAudioEngine();
+            state.chordTapSoundEnabled = !state.chordTapSoundEnabled;
+            updateTapSoundUI();
+          });
+        }
+
+        if (modalTapBtn) {
+          modalTapBtn.addEventListener('click', () => {
+            initAudioEngine();
+            state.chordTapSoundEnabled = !state.chordTapSoundEnabled;
+            updateTapSoundUI();
+          });
+        }
+
+        // Drone Organ Toggle
+        const droneBtn = document.getElementById('btn-drone-toggle');
+        const droneLed = document.getElementById('drone-led');
+        droneBtn.addEventListener('click', () => {
+          initAudioEngine();
+          state.isDroneActive = !state.isDroneActive;
+          if (state.isDroneActive) {
+            droneLed.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#ffb700]';
+            droneBtn.classList.add('border-amber-500/60', 'text-amber-300');
+          } else {
+            droneLed.className = 'w-1.5 h-1.5 rounded-full bg-slate-600';
+            droneBtn.classList.remove('border-amber-500/60', 'text-amber-300');
+          }
+          updateChordDrone();
+        });
+
+        // Rhythm Box Toggle
+        const rhythmBtn = document.getElementById('btn-rhythm-toggle');
+        rhythmBtn.addEventListener('click', () => {
+          initAudioEngine();
+          state.isRhythmActive = !state.isRhythmActive;
+          if (state.isRhythmActive) {
+            startRhythmSequencer();
+            rhythmBtn.classList.add('border-fuchsia-500/60', 'text-fuchsia-300');
+          } else {
+            stopRhythmSequencer();
+            rhythmBtn.classList.remove('border-fuchsia-500/60', 'text-fuchsia-300');
+          }
+        });
+
+        // Octave Shift Buttons
+        document.getElementById('octave-down-btn').addEventListener('click', () => {
+          if (state.octaveShift > -1) {
+            state.octaveShift--;
+            document.getElementById('current-octave-display').textContent = state.octaveShift;
+            computeChordNotes();
+          }
+        });
+
+        document.getElementById('octave-up-btn').addEventListener('click', () => {
+          if (state.octaveShift < 1) {
+            state.octaveShift++;
+            document.getElementById('current-octave-display').textContent = `+${state.octaveShift}`;
+            computeChordNotes();
+          }
+        });
+
+        // Settings Modal
+        const settingsModal = document.getElementById('settings-modal');
+        document.getElementById('btn-open-settings').addEventListener('click', () => {
+          settingsModal.classList.remove('hidden');
+          settingsModal.classList.add('flex');
+        });
+
+        const closeSettings = () => {
+          settingsModal.classList.add('hidden');
+          settingsModal.classList.remove('flex');
+        };
+        document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
+        document.getElementById('btn-done-settings').addEventListener('click', closeSettings);
+
+        // Voice Presets
+        const voiceButtons = document.querySelectorAll('#voice-preset-buttons button');
+        voiceButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            state.voicePreset = btn.dataset.voice;
+            voiceButtons.forEach(b => {
+              b.className = b === btn
+                ? 'p-2 rounded-lg bg-cyan-950/80 border border-cyan-500/60 text-cyan-300 text-left font-bold active:scale-95 transition-all'
+                : 'p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-left font-bold active:scale-95 transition-all';
+            });
+            document.getElementById('oled-voice-display').textContent = btn.childNodes[0].textContent.trim();
+          });
+        });
+
+        // Sustain Slider
+        const sustainSlider = document.getElementById('slider-sustain');
+        sustainSlider.addEventListener('input', (e) => {
+          state.sustainTime = parseFloat(e.target.value);
+          document.getElementById('sustain-value-display').textContent = `${state.sustainTime}s`;
+        });
+
+        // Volume Slider
+        const volumeSlider = document.getElementById('slider-volume');
+        volumeSlider.addEventListener('input', (e) => {
+          state.masterVolume = parseInt(e.target.value) / 100;
+          document.getElementById('volume-value-display').textContent = `${e.target.value}%`;
+          if (masterGainNode && audioCtx) {
+            masterGainNode.gain.setValueAtTime(state.masterVolume, audioCtx.currentTime);
+          }
+        });
+
+        // Drone Volume Slider
+        const droneVolumeSlider = document.getElementById('slider-drone-volume');
+        droneVolumeSlider.addEventListener('input', (e) => {
+          state.droneVolume = parseInt(e.target.value) / 100;
+          document.getElementById('drone-volume-display').textContent = `${e.target.value}%`;
+          if (droneMasterGain && audioCtx) {
+            droneMasterGain.gain.setValueAtTime(state.droneVolume * 0.45, audioCtx.currentTime);
+          }
+        });
+
+        // Tempo Slider
+        const tempoSlider = document.getElementById('slider-tempo');
+        tempoSlider.addEventListener('input', (e) => {
+          state.bpm = parseInt(e.target.value);
+          document.getElementById('tempo-value-display').textContent = `${state.bpm} BPM`;
+          if (state.isRhythmActive) {
+            startRhythmSequencer();
+          }
+        });
+
+        // Rhythm Pattern Selector
+        document.getElementById('rhythm-pattern-select').addEventListener('change', (e) => {
+          state.rhythmPattern = e.target.value;
+        });
+      }
+
+      // --- INITIALIZATION ---
+      window.addEventListener('DOMContentLoaded', () => {
+        computeChordNotes();
+        populateChordMatrix();
+        bindStrumplateEvents();
+        initStrumplateCanvas();
+        setupUIHandlers();
+      });
+    </script>
+  </body>
+</html>

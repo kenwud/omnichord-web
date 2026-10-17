@@ -1,0 +1,6 @@
+{
+  "name": "Omnichord Retro Synthesizer",
+  "description": "Mobile-optimized retro-futuristic Omnichord digital instrument with multi-touch strumplate and Web Audio API synthesis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
